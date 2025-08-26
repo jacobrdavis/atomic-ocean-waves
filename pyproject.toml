@@ -1,0 +1,27 @@
+[project]
+name = "atomic-ocean-waves"
+version = "0.1.0"
+description = "Analysis of ocean surface wave data collected during the Atlantic Tradewind Ocean–Atmosphere Mesoscale Interaction Campaign (ATOMIC)."
+authors = [
+    {name = "Jake Davis", email = "davisjr@uw.edu"}
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.13"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "xarray",
+    "dask",
+    "matplotlib",
+    "netcdf4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
