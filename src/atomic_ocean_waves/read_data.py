@@ -8,12 +8,19 @@ Functions for reading ATOMIC data.
 __all__ = [
     "read_swift_file",
     "read_swift_directory",
+    "read_wave_glider_file",
+    "read_wave_glider_directory",
     "read_wsra_file",
     "read_wsra_directory",
     "read_p3_directory",
+    "read_saildrone_cdf_file",
+    "read_saildrone_asc_file",
+    "read_ship_nav_met_sea_flux_file",
+    "read_ship_atm_ocean_near_surface_profiles_file",
 ]
 
 
+import functools
 import glob
 import os
 import re
@@ -42,50 +49,149 @@ def read_swift_file(filepath: str, **kwargs) -> xr.Dataset:
 
 def read_swift_directory(
     directory: str,
+    round_times: bool = True,
     **kwargs,
 ) -> xr.Dataset:
     """
     Read and concatenate a directory of SWIFT files into a Dataset.
 
+    Note: Rounding times the nearest second using `round_times` prevents
+    unnecessary duplication of times when merging datasets.
+
     Args:
         directory (str): directory containing SWIFT files,
+        round_times (bool, optional): Whether to round times to the
+            nearest second. Defaults to True.
         kwargs (optional): additional keyword arguments passed to
             xr.open_mfdataset.
-
-    Raises:
-        FileNotFoundError: If no files of type `file_type` are found
-            inside of `directory`.
 
     Returns:
         xr.Dataset: all SWIFT files concatenated into a single Dataset.
     """
     swift_files = get_files_from_directory(directory)
 
+    partial_preprocess = functools.partial(
+        _preprocess_swift_file,
+        round_times=round_times,
+    )
+
     return xr.open_mfdataset(
         swift_files,
         concat_dim='id',
+        join='outer',
         combine='nested',
         combine_attrs=combine_attrs,
-        preprocess=_preprocess_swift_file,
+        preprocess=partial_preprocess,
         **kwargs,
     )
 
 
 def _preprocess_swift_file(
     swift_ds: xr.Dataset,
+    round_times: bool = True,
 ) -> xr.Dataset:
+    # Expand dimensions to include SWIFT ID.
     swift_id = _get_swift_id_from_nc(swift_ds)
-    return swift_ds.expand_dims(dim={'id': [swift_id]}, axis=0)
+    swift_ds = swift_ds.expand_dims(dim={'id': [swift_id]}, axis=0)
+
+    # All SWIFT files have the same time within second precision.
+    if round_times:
+        swift_ds['time'] = swift_ds['time'].dt.round('1s')
+
+    return swift_ds
 
 
 def _get_swift_id_from_nc(swift_ds: xr.Dataset) -> str:
     # Extract SWIFT ID from the dataset attributes (e.g., SWIFT 16).
-    match = re.search(r'SWIFT [0-9][0-9]', swift_ds.attrs['description'])
+    match = re.search(r'SWIFT ([0-9]{1,3})', swift_ds.attrs['description'])
     if match:
         # Return ID number only.
-        swift_name_id = match.group(0)
-        return swift_name_id.split(' ')[-1]
+        return match.group(1)
+
     raise ValueError('SWIFT ID not found.')
+
+
+def read_wave_glider_file(filepath: str, **kwargs) -> xr.Dataset:
+    """
+    Read Wave Glider data into an Xarray Dataset.
+
+    Args:
+        filepath (str): path to Wave Glider netCDF (.nc) file.
+        kwargs (optional): additional keyword arguments passed to
+            xr.open_dataset.
+
+    Returns:
+        xr.Dataset: Wave Glider dataset.
+    """
+    return xr.open_dataset(filepath, **kwargs)
+
+
+def read_wave_glider_directory(
+    directory: str,
+    round_times: bool = True,
+    **kwargs,
+) -> xr.Dataset:
+    """
+    Read and concatenate a directory of Wave Glider files into a Dataset.
+
+    Note: Rounding times the nearest minute using `round_times` prevents
+    unnecessary duplication of times when merging datasets.
+
+    Args:
+        directory (str): directory containing Wave Glider files,
+        round_times (bool, optional): Whether to round times to the
+            nearest minute. Defaults to True.
+        kwargs (optional): additional keyword arguments passed to
+            xr.open_mfdataset.
+
+    Returns:
+        xr.Dataset: all Wave Glider files concatenated into a single Dataset.
+    """
+    wave_glider_files = get_files_from_directory(directory)
+
+    partial_preprocess = functools.partial(
+        _preprocess_wave_glider_file,
+        round_times=round_times
+    )
+
+    return xr.open_mfdataset(
+        wave_glider_files,
+        concat_dim='id',
+        join='outer',
+        combine='nested',
+        combine_attrs=combine_attrs,
+        preprocess=partial_preprocess,
+        **kwargs,
+    )
+
+
+def _preprocess_wave_glider_file(
+    wave_glider_ds: xr.Dataset,
+    round_times: bool = True,
+) -> xr.Dataset:
+    # Expand dimensions to include Wave Glider ID.
+    wave_glider_id = _get_wave_glider_id_from_nc(wave_glider_ds)
+    wave_glider_ds = (wave_glider_ds
+                      .expand_dims(dim={'id': [wave_glider_id]}, axis=0))
+
+    # All Wave Glider files have the same time within minute precision.
+    if round_times:
+        wave_glider_ds['time'] = wave_glider_ds['time'].dt.round('1min')
+
+    return wave_glider_ds
+
+
+def _get_wave_glider_id_from_nc(wave_glider_ds: xr.Dataset) -> str:
+    # Extract Wave Glider ID from the dataset attributes (e.g., WG245).
+    match = re.search(
+        r'Wave Glider\s?([0-9]{1,3})',
+        wave_glider_ds.attrs['description']
+    )
+    if match:
+        # Return ID number only.
+        return match.group(1)
+
+    raise ValueError('Wave Glider ID not found.')
 
 
 def read_wsra_file(filepath: str, index_by_time: bool = True) -> xr.Dataset:
@@ -126,10 +232,6 @@ def read_wsra_directory(
         kwargs (optional): additional keyword arguments passed to
             xr.open_mfdataset.
 
-    Raises:
-        FileNotFoundError: If no files of type `file_type` are found
-            inside of `directory`.
-
     Returns:
         xr.Dataset: all WSRA files concatenated into a single Dataset.
     """
@@ -138,6 +240,7 @@ def read_wsra_directory(
     return xr.open_mfdataset(
         wsra_files,
         concat_dim='time' if index_by_time else 'trajectory',
+        join='outer',
         combine='nested',
         combine_attrs=combine_attrs,
         preprocess=_preprocess_wsra_file,
@@ -194,10 +297,6 @@ def read_p3_directory(
         kwargs (optional): additional keyword arguments passed to
             xr.open_mfdataset.
 
-    Raises:
-        FileNotFoundError: If no files of type `file_type` are found
-            inside of `directory`.
-
     Returns:
         xr.Dataset: all WSRA files concatenated into a single Dataset.
     """
@@ -206,10 +305,26 @@ def read_p3_directory(
     return xr.open_mfdataset(
         p3_files,
         concat_dim='time',
+        join='outer',
         combine='nested',
         combine_attrs=combine_attrs,
         **kwargs,
     )
+
+
+def read_saildrone_cdf_file(filepath: str, **kwargs) -> xr.Dataset:
+    """
+    Read Saildrone spectral wave data (.cdf) into an Xarray Dataset.
+
+    Args:
+        filepath (str): path to Saildrone CDF (.cdf) file.
+        kwargs (optional): additional keyword arguments passed to
+            xr.open_dataset.
+
+    Returns:
+        xr.Dataset: Saildrone spectral dataset.
+    """
+    return xr.open_dataset(filepath, **kwargs)
 
 
 def read_saildrone_asc_file(
@@ -257,7 +372,11 @@ def read_saildrone_asc_file(
         raise ValueError(f'{data_type} not supported.')
 
 
-def _assign_saildrone_variable_attrs(sd_ds: xr.Dataset, variables: List, descriptions: List) -> xr.Dataset:
+def _assign_saildrone_variable_attrs(
+    sd_ds: xr.Dataset,
+    variables: List,
+    descriptions: List
+) -> xr.Dataset:
     """ Assign attributes to USAFR met Dataset variables."""
     for var, des in zip(variables, descriptions):
         if var in sd_ds.keys():
@@ -265,7 +384,9 @@ def _assign_saildrone_variable_attrs(sd_ds: xr.Dataset, variables: List, descrip
     return sd_ds
 
 
-def _parse_saildrone_asc_header(filepath: str) -> Tuple[List, List, List, dict, int]:
+def _parse_saildrone_asc_header(
+    filepath: str
+) -> Tuple[List, List, List, dict, int]:
     """ Parse Saildrone bulk wave .asc file header.
 
     Returns variable names, column numbers, descriptions, dataset
@@ -299,7 +420,8 @@ def _parse_saildrone_asc_header(filepath: str) -> Tuple[List, List, List, dict, 
                     var = var.strip().replace(' ', '_')
                 if des is not None:
                     des = des.strip()
-                else: des = ''
+                else:
+                    des = ''
 
                 variables.append(var)
                 columns.append(col)
@@ -312,6 +434,67 @@ def _parse_saildrone_asc_header(filepath: str) -> Tuple[List, List, List, dict, 
 
     file.close()
     return variables, columns, descriptions, attrs, start_data
+
+
+def read_ship_nav_met_sea_flux_file(
+    filepath: str,
+    refactor: bool = True,
+    round_times: bool = True,
+    **kwargs
+) -> xr.Dataset:
+    """Read ship navigation, meteorological, and sea flux data.
+
+    Note: Rounding times the nearest second using `round_times` prevents
+    unnecessary duplication of times when merging with other datasets.
+
+    Args:
+        filepath (str): Path to the Ship "nav_met_sea_flux" NetCDF file.
+        refactor (bool, optional): Whether to squeeze unnecessary
+            dimensions and rename remaining ones. Defaults to True.
+        round_times (bool, optional): Whether to round times to the
+            nearest second. Defaults to True.
+        kwargs (optional): additional keyword arguments passed to
+                    xr.open_dataset.
+    Returns:
+        xr.Dataset: Ship dataset.
+    """
+    ship_ds = xr.open_dataset(filepath, **kwargs)
+
+    if refactor:
+        ship_ds = (ship_ds
+                   .squeeze(dim='trajectory', drop=True)
+                   .swap_dims({'obs': 'time'}))
+
+        # All ship files have the same time within second precision.
+        if round_times:
+            ship_ds['time'] = ship_ds['time'].dt.round('1s')
+
+    return ship_ds
+
+
+def read_ship_atm_ocean_near_surface_profiles_file(
+    filepath: str,
+    refactor=True,
+    **kwargs
+) -> xr.Dataset:
+    """Read ship atmospheric and ocean near-surface profile data.
+
+    Args:
+        filepath (str): Path to the "atm_ocean_near_surface_profiles"
+            NetCDF file.
+        refactor (bool, optional): Whether to round times. Defaults
+            to True.
+        kwargs (optional): additional keyword arguments passed to
+                    xr.open_dataset.
+    Returns:
+        xr.Dataset: Ship dataset.
+    """
+    ship_ds = xr.open_dataset(filepath, **kwargs)
+
+    if refactor:
+        ship_ds['time'] = ship_ds['time'].dt.round('1s')
+
+    return ship_ds
 
 
 def get_files_from_directory(
