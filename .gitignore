@@ -1,5 +1,6 @@
 # Local files
 data/
+!data/README.md
 notes.md
 
 # MacOS
