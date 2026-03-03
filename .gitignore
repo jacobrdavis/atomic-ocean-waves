@@ -1,6 +1,8 @@
 # Local files
-data/*
-!data/README.md
+data_processed/*
+data_input/*
+!data_input/README.md
+!data_processed/README.md
 notes.md
 
 # MacOS
