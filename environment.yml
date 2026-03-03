@@ -1,0 +1,21 @@
+name: atomic-ocean-waves
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.13
+  - colorcet
+  - ipykernel
+  - jupyter
+  - matplotlib
+  - netcdf4
+  - notebook
+  - numpy
+  - pandas
+  - scipy
+  - xarray
+  - dask
+  - pip
+  - pip:
+    - atomic-ocean-waves
+

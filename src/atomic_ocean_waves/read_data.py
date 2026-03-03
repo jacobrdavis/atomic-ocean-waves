@@ -10,6 +10,8 @@ __all__ = [
     "read_swift_directory",
     "read_wave_glider_file",
     "read_wave_glider_directory",
+    "read_ww3_file",
+    "read_ww3_directory",
     "read_wsra_file",
     "read_wsra_directory",
     "read_p3_directory",
@@ -17,6 +19,7 @@ __all__ = [
     "read_saildrone_asc_file",
     "read_ship_nav_met_sea_flux_file",
     "read_ship_atm_ocean_near_surface_profiles_file",
+    "read_riegl_file",
 ]
 
 
@@ -24,6 +27,7 @@ import functools
 import glob
 import os
 import re
+from io import StringIO
 from typing import List, Literal, Tuple, Union
 from warnings import warn
 
@@ -194,6 +198,49 @@ def _get_wave_glider_id_from_nc(wave_glider_ds: xr.Dataset) -> str:
     raise ValueError('Wave Glider ID not found.')
 
 
+def read_ww3_file(filepath: str, **kwargs) -> xr.Dataset:
+    """
+    Read WAVEWATCH III model data into an Xarray Dataset.
+
+    Args:
+        filepath (str): path to WAVEWATCH III netCDF (.nc) file.
+        kwargs (optional): additional keyword arguments passed to
+            xr.open_dataset.
+
+    Returns:
+        xr.Dataset: WAVEWATCH III dataset.
+    """
+    return xr.open_dataset(filepath, **kwargs)
+
+
+def read_ww3_directory(
+    directory: str,
+    **kwargs,
+) -> xr.Dataset:
+    """
+    Read and concatenate a directory of WAVEWATCH III files into a Dataset.
+    Args:
+        directory (str): directory containing WAVEWATCH III files,
+        kwargs (optional): additional keyword arguments passed to
+            xr.open_mfdataset.
+
+    Returns:
+        xr.Dataset: all WAVEWATCH III files concatenated into a
+            single Dataset.
+    """
+    ww3_files = get_files_from_directory(directory)
+
+    return xr.open_mfdataset(
+        ww3_files,
+        concat_dim='time',
+        join='outer',
+        data_vars='all',
+        combine='nested',
+        combine_attrs=combine_attrs,
+        **kwargs,
+    )
+
+
 def read_wsra_file(filepath: str, index_by_time: bool = True) -> xr.Dataset:
     """
     Read and concatenate a directory of Level 4 WSRA files into a Dataset.
@@ -334,25 +381,31 @@ def read_saildrone_asc_file(
     """ Read Saildrone bulk wave data (.asc) as a DataFrame or Dataset.
 
     Args:
-        filepath (str): Path to data file.
-        data_type (Literal['pandas', 'xarray']): Return type for the data.
+        filepath (str): path to data file.
+        data_type (Literal['pandas', 'xarray']): return type for the data.
 
     Returns:
         Union[pd.DataFrame, xr.Dataset]: Saildrone bulk wave data.
     """
     # Parse column information from the header.
-    variables, columns, descriptions, attrs, start_data = _parse_saildrone_asc_header(filepath)
+    variables, columns, descriptions, attrs, start_data \
+        = _parse_saildrone_asc_header(filepath)
 
-    # Get the file basename, which also contains mission date information.
+    # Append filename to attributes.
     file_basename = os.path.basename(filepath)
     attrs['filename'] = file_basename
 
+    # Strip irregular missing values. StringIO is treated as a file.
+    # len(columns)+ 1 accounts for split datetime column.
+    data_string_io = _preprocess_saildrone_asc_data(filepath,
+                                                    start_data=start_data,
+                                                    n_columns=len(columns) + 1)
+
     # Remaining data is space-delimited.
     # TODO: assumes variables are in order (could sort via `columns`).
-    sd_df = pd.read_csv(filepath,
+    sd_df = pd.read_csv(data_string_io,
                         sep=r'\s+',
-                        names=variables,
-                        skiprows=start_data)
+                        names=variables,)
 
     # Convert date and time columns to a datetime index.
     datestr_series = sd_df.index + 'T' + sd_df['TAX_DATESTRING(T[GT=MSS],MSS,"seconds")']
@@ -361,6 +414,7 @@ def read_saildrone_asc_file(
              .drop(columns=['TAX_DATESTRING(T[GT=MSS],MSS,"seconds")'])
              .set_index('TIME'))
 
+    # Attributes are only assigned to output if data_type is 'xarray'.
     if data_type == 'xarray':
         sd_ds = sd_df.to_xarray()
         sd_ds.attrs.update(attrs)
@@ -370,6 +424,28 @@ def read_saildrone_asc_file(
         return sd_df
     else:
         raise ValueError(f'{data_type} not supported.')
+
+
+def _preprocess_saildrone_asc_data(
+    filepath: str,
+    start_data: int,
+    n_columns: int,
+) -> StringIO:
+    # Read the entire file, including the header.
+    with open(filepath, "r") as f:
+            file_content = f.read()
+
+    # Extract only the data. Missing values and inconsistent delimiters
+    # need to be replaced.
+    file_data = (file_content
+                 .replace('******', ' NaN')
+                 .split('\n')
+                 [start_data:])
+
+    # Some columns are not delimited. These are removed.
+    lines = [line for line in file_data if len(line.split()) == n_columns]
+
+    return StringIO('\n'.join(lines))
 
 
 def _assign_saildrone_variable_attrs(
@@ -448,10 +524,10 @@ def read_ship_nav_met_sea_flux_file(
     unnecessary duplication of times when merging with other datasets.
 
     Args:
-        filepath (str): Path to the Ship "nav_met_sea_flux" NetCDF file.
-        refactor (bool, optional): Whether to squeeze unnecessary
+        filepath (str): path to the Ship "nav_met_sea_flux" NetCDF file.
+        refactor (bool, optional): whether to squeeze unnecessary
             dimensions and rename remaining ones. Defaults to True.
-        round_times (bool, optional): Whether to round times to the
+        round_times (bool, optional): whether to round times to the
             nearest second. Defaults to True.
         kwargs (optional): additional keyword arguments passed to
                     xr.open_dataset.
@@ -480,9 +556,9 @@ def read_ship_atm_ocean_near_surface_profiles_file(
     """Read ship atmospheric and ocean near-surface profile data.
 
     Args:
-        filepath (str): Path to the "atm_ocean_near_surface_profiles"
+        filepath (str): path to the "atm_ocean_near_surface_profiles"
             NetCDF file.
-        refactor (bool, optional): Whether to round times. Defaults
+        refactor (bool, optional): whether to round times. Defaults
             to True.
         kwargs (optional): additional keyword arguments passed to
                     xr.open_dataset.
@@ -495,6 +571,24 @@ def read_ship_atm_ocean_near_surface_profiles_file(
         ship_ds['time'] = ship_ds['time'].dt.round('1s')
 
     return ship_ds
+
+
+def read_riegl_file(
+    filepath: str,
+    **kwargs
+) -> xr.Dataset:
+    """Read riegl ocean surface wave data.
+
+    Args:
+        filepath (str): path to SWIFT netCDF (.nc) file.
+        refactor (bool, optional): Whether to round times. Defaults
+            to True.
+        kwargs (optional): additional keyword arguments passed to
+                    xr.open_dataset.
+    Returns:
+        xr.Dataset: Ship dataset.
+    """
+    return xr.open_dataset(filepath, **kwargs)
 
 
 def get_files_from_directory(
