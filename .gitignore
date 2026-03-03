@@ -1,5 +1,5 @@
 # Local files
-data/
+data/*
 !data/README.md
 notes.md
 
