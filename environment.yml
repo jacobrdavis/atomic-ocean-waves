@@ -17,5 +17,5 @@ dependencies:
   - dask
   - pip
   - pip:
-    - atomic-ocean-waves
+    - -e .
 

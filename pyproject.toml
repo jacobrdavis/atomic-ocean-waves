@@ -3,7 +3,7 @@ name = "atomic-ocean-waves"
 version = "v2026.03.0"
 description = "Analysis of ocean surface wave data collected during the Atlantic Tradewind Ocean–Atmosphere Mesoscale Interaction Campaign (ATOMIC)."
 authors = [
-    {name = "Jake Davis", email = "davisjr@uw.edu"}
+    {name = "Jake Davis", email = "jacob.davis@whoi.edu"}
 ]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
@@ -12,19 +12,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 requires-python = ">=3.13"
-dependencies = [
-    "colorcet",
-    "dask",
-    "ipykernel",
-    "jupyter",
-    "matplotlib",
-    "netcdf4",
-    "notebook",
-    "numpy",
-    "pandas",
-    "scipy",
-    "xarray",
-]
+dependencies = []  # handled by environment.yml
 
 [build-system]
 requires = ["hatchling"]
