@@ -19,7 +19,7 @@ These datasets are publicly archived on the ATOMIC / EUREC4A Data Information an
 Download the datasets and unzip the contents into the `data` folder. It should have the following structure:
 
 ```
-data/
+data_input/
 ├── P3/
 ├── riegl/
 ├── saildrone/
