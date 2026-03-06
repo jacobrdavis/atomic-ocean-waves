@@ -13,13 +13,17 @@ classifiers = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "colorcet",
+    "dask",
+    "ipykernel",
+    "jupyter",
+    "matplotlib",
+    "netcdf4",
+    "notebook",
     "numpy",
     "pandas",
     "scipy",
     "xarray",
-    "dask",
-    "matplotlib",
-    "netcdf4",
 ]
 
 [build-system]
