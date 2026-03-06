@@ -188,8 +188,8 @@ def _calculate_fq_dir_spectrum_var(
     direction,
     frequency,
 ):
-    scalar_energy_density = np.trapz(energy_density, direction, axis=0)
-    variance = np.trapz(scalar_energy_density, frequency, axis=0)
+    scalar_energy_density = np.trapezoid(energy_density, direction, axis=0)
+    variance = np.trapezoid(scalar_energy_density, frequency, axis=0)
     return variance
 
 
@@ -204,8 +204,8 @@ def _calculate_wn_spectrum_var(
                                                     wavenumber_east,
                                                     wavenumber_north)
 
-    energy_density_north = np.trapz(energy_density, wavenumber_east, axis=0)
-    variance = np.trapz(energy_density_north, wavenumber_north, axis=0)
+    energy_density_north = np.trapezoid(energy_density, wavenumber_east, axis=0)
+    variance = np.trapezoid(energy_density_north, wavenumber_north, axis=0)
     return variance
 
 

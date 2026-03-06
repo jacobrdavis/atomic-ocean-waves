@@ -272,7 +272,7 @@ def spectral_moment(
             of the returned array is reduced along `axis`.
     """
     frequency_n = frequency ** n
-    moment_n = np.trapz(energy_density * frequency_n, x=frequency, axis=axis)
+    moment_n = np.trapezoid(energy_density * frequency_n, x=frequency, axis=axis)
     return moment_n
 
 
