@@ -5,7 +5,7 @@ Analysis of ocean surface wave data collected during the Atlantic Tradewind Ocea
 
 1. Clone this repository.  In the terminal, run:
    ```sh
-   git clone https://github.com/jacobrdavis/neural-network-based-methods-for-das-ocean-surface-wave-measurement.git
+   git clone https://github.com/jacobrdavis/atomic-ocean-waves.git
    ```
 3. Download the data and move it to [data_input/](data_input/) (see the README inside the folder).
 4. Create a Python environment.  If using conda/mamba, run:
