@@ -12,7 +12,7 @@ Analysis of ocean surface wave data collected during the Atlantic Tradewind Ocea
    ```sh
    conda env create -f environment.yml
    ```
-5. Install the source code. Access the latest release at [https://github.com/jacobrdavis/atomic-ocean-waves/releases/latest](https://github.com/jacobrdavis/atomic-ocean-waves/releases/latest) and install it, e.g., using pip:
+5. Activate the new environment and install the source code. Access the latest release at [https://github.com/jacobrdavis/atomic-ocean-waves/releases/latest](https://github.com/jacobrdavis/atomic-ocean-waves/releases/latest) and install it, e.g., using pip:
    ```sh
    pip install https://github.com/jacobrdavis/atomic-ocean-waves/releases/download/v2026.03.0/atomic_ocean_waves-2026.3.0.tar.gz
    ```
