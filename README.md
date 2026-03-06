@@ -16,4 +16,4 @@ Analysis of ocean surface wave data collected during the Atlantic Tradewind Ocea
    ```sh
    pip install https://github.com/jacobrdavis/atomic-ocean-waves/releases/download/v2026.03.0/atomic_ocean_waves-2026.3.0.tar.gz
    ```
-6. Run the .ipynb notebooks inside [notebooks/](notebooks/) in order. These notebooks will process the raw data inside [data_input/](data_input/) and repoduce the analysis and figures.
+6. Run the .ipynb notebooks inside [notebooks/](notebooks/) in order. These notebooks will process the raw data inside [data_input/](data_input/) and reproduce the analysis and figures.
