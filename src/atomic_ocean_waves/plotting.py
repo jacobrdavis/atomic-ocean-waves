@@ -2,7 +2,7 @@
 Shared plotting functions.
 """
 
-from typing import Optional, Union, Tuple, Sequence, Any
+from typing import Literal, List, Optional, Union, Tuple, Sequence, Any
 
 # import cartopy
 # import cmocean
@@ -32,6 +32,14 @@ figure_full_width = 5.5
 normal_font_size = 10
 small_font_size = 8
 
+swift_color = 'goldenrod'
+wg_color = 'crimson'
+sd_color = 'teal'
+p3_color = 'navy'
+wsra_color = 'navy'
+riegl_color = 'indigo'  # '#5C4033'
+ship_color = 'indigo'
+ww3_color = 'silver'
 
 rc_params = {
     'font.size': normal_font_size,
@@ -187,8 +195,73 @@ def spectrogram(
     return ax.pcolormesh(time_grid, frequency_grid, spectra, **kwargs)
 
 
-# Project-specific
+def scalar_spectrum(
+    frequency: np.ndarray,
+    spectral_density: np.ndarray,
+    c: Optional[np.ndarray] = None,
+    ax: Optional[Axes] = None,
+    statistic: Optional[Literal['mean', 'median']] = None,
+    **kwargs: dict,
+) -> Union[List[Line2D], LineCollection]:
+    """Plot a scalar energy density spectrum."""
+    #TODO: document shapes (...,f), (...,f) (...,)
+    ax = get_ax(ax)
 
+    if statistic == 'mean':
+        spectral_density = np.nanmean(spectral_density, axis=0)
+        frequency = np.nanmean(frequency, axis=0)
+    elif statistic == 'median':
+        spectral_density = np.nanmedian(spectral_density, axis=0)
+        frequency = np.nanmedian(frequency, axis=0)
+    else:
+        pass
+
+    if c is not None:
+        kwargs.setdefault('norm', plt.Normalize(vmin=c.min(), vmax=c.max()))
+
+    line_plot = multiline(
+        frequency,
+        spectral_density,
+        c=c,
+        ax=ax,
+        **kwargs,
+    )
+
+    return line_plot
+
+
+def multiline(
+    xs: np.ndarray,
+    ys: np.ndarray,
+    c: Optional[np.ndarray] = None,
+    ax: Optional[Axes] = None,
+    **kwargs: dict,
+) -> LineCollection:
+    """Line plot with colormap.
+
+    Adapted from digbyterrell at https://stackoverflow.com/questions/38208700/
+    matplotlib-plot-lines-with-colors-through-colormap.
+    """
+    ax = get_ax(ax)
+
+    # Collect segments.
+    segments = np.stack((xs, ys), axis=-1)
+
+    # Add axis if only 2D. LineCollection expects a sequence
+    # [line0, line1, ...] where each line is a (N, 2)-shape array.
+    if segments.ndim < 3:
+        segments = segments[np.newaxis, ...]
+
+    lc = LineCollection(segments, array=c, **kwargs)
+
+    # Add and rescale. Adding a collection doesn't autoscale xlim/ylim.
+    ax.add_collection(lc)
+    ax.autoscale()
+
+    return lc
+
+
+# Project-specific
 
 def annotate_legs(ax, scale=1.05):
     y_max = ax.get_ylim()[1] * scale

@@ -41,8 +41,9 @@ def significant_wave_height(
     spectral variance.
 
     Note:
-        This function requires that the frequency dimension is along the last
-        axis of `energy_density`.
+        This function requires that the frequency dimension is along the
+        last axis of `energy_density`. NaNs must also be filled prior to
+        using this method.
 
     Args:
         energy_density (np.ndarray): 1-D energy density frequency spectrum with
@@ -83,8 +84,9 @@ def energy_period(
     moments of the one-dimensional frequency spectrum.
 
     Note:
-        This function requires that the frequency dimension is along the last
-        axis of `energy_density`.
+        This function requires that the frequency dimension is along the
+        last axis of `energy_density`. NaNs must also be filled prior to
+        using this method.
 
     Args:
         energy_density (np.ndarray): 1-D energy density frequency spectrum with
@@ -130,8 +132,9 @@ def mean_square_slope(
     dimensional frequency spectrum.
 
     Note:
-        This function requires that the frequency dimension is along the last
-        axis of `energy_density`.
+        This function requires that the frequency dimension is along the
+        last axis of `energy_density`. NaNs must also be filled prior to
+        using this method.
 
     Args:
         energy_density (np.ndarray): 1-D energy density frequency spectrum with
