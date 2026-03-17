@@ -7,13 +7,10 @@ Analysis of ocean surface wave data collected during the Atlantic Tradewind Ocea
    ```sh
    git clone https://github.com/jacobrdavis/atomic-ocean-waves.git
    ```
-3. Download the data and move it to [data_input/](data_input/) (see the README inside the folder).
-4. Create a Python environment.  If using conda/mamba, run:
+2. Download the data and move it to [data_input/](data_input/) (see the README inside the folder).
+3. Create a Python environment.  If using conda/mamba, run:
    ```sh
    conda env create -f environment.yml
    ```
-5. Activate the new environment and install the source code. Access the latest release at [https://github.com/jacobrdavis/atomic-ocean-waves/releases/latest](https://github.com/jacobrdavis/atomic-ocean-waves/releases/latest) and install it, e.g., using pip:
-   ```sh
-   pip install https://github.com/jacobrdavis/atomic-ocean-waves/releases/download/v2026.03.0/atomic_ocean_waves-2026.3.0.tar.gz
-   ```
-6. Run the .ipynb notebooks inside [notebooks/](notebooks/) in order. These notebooks will process the raw data inside [data_input/](data_input/) and reproduce the analysis and figures.
+   This will install the necessary dependencies and an editible version of the package source code inside [src/](src/).
+4. Activate the new environment and run the .ipynb notebooks inside [notebooks/](notebooks/) in order. These notebooks will process the raw data inside [data_input/](data_input/) and reproduce the analysis and figures.
